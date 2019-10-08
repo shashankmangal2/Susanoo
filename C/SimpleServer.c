@@ -50,9 +50,9 @@ int Server(int port){
             else{
                 int len_saddr = sizeof(saddr);
                 printf("[+] Listening to port %d\n",port);
-                int tryAccept = accept(mySock,(SOCKADDR*)&saddr, &len_saddr );
+                SOCKET AcceptSock = accept(mySock,(SOCKADDR*)&saddr, &len_saddr );
 
-                if (tryAccept < 0){
+                if (AcceptSock == INVALID_SOCKET){
                     printf("[-] Accepting connetion Failed\n");
                     closesocket(mySock);
                     WSACleanup();
@@ -60,13 +60,14 @@ int Server(int port){
                     // continue;
                 }
                 else{
+                    closesocket(mySock);
                     printf("[+] Connection Extablished\n");
                     char SendData[1024] = "Hello from Server";
                     char RecvData[1024];
                     int RecvDataLen = sizeof(RecvData)+1;
                     int sendLen = sizeof(SendData)+1;
-                    send(mySock,SendData,sendLen,0);
-                    recv(mySock,RecvData,RecvDataLen,0);
+                    send(AcceptSock,SendData,sendLen,0);
+                    recv(AcceptSock,RecvData,RecvDataLen,0);
                     printf("receved data is: %s\n",RecvData[0]);
                     if((RecvData[0] == 'b' || RecvData[0] == 'B' )&& RecvData[1] == 'y' && RecvData[2] == 'e'){
                         printf("[+] Exit signal Recieved\n");

@@ -50,8 +50,8 @@ int Server(int port){
         else{
             cout<<"[+] Listening to port "<<port<<endl;
             int sizeSaddr = sizeof(saddr);
-            int tryAccept = accept(mySock,(SOCKADDR*)&saddr,(socklen_t*)&sizeSaddr);
-            if(tryAccept < 0){
+            SOCKET AcceptSock = accept(mySock,(SOCKADDR*)&saddr,(socklen_t*)&sizeSaddr);
+            if(AcceptSock == INVALID_SOCKET){
                 cout<<"[-] Accepting connection Failed"<<endl;
                 closesocket(mySock);
                 WSACleanup();
@@ -59,11 +59,12 @@ int Server(int port){
                 // continue;
             }
             else{
+                closesocket(mySock);
                 cout<<"[+] Connection Established \n Enjoy Your Shell....."<<endl;
                 char SendData[1024] = "hello";
                 int iSendDataBuffer = strlen(SendData)+1;
-                send(mySock,SendData,iSendDataBuffer,0);
-                recv(mySock,buffer,strlen(buffer)+1,0);
+                send(AcceptSock,SendData,iSendDataBuffer,0);
+                recv(AcceptSock,buffer,strlen(buffer)+1,0);
 
             }
 

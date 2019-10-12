@@ -1,0 +1,13 @@
+
+1: Start with sending a large buffer and find if there is a buffer over flow
+
+2: Then send pattern from msf framework to find the exect offset of the EIP overwrite
+
+3: Find what are the bad characters in this application by sending bad char list affter EIP is overwritten(where C was)
+	[NOTE] If we send bad char list in place of normal buffer(where A is) the it will terminate string when some badchar is encountered and will not bufferoverflow to give us output.
+
+4: Now find JMP ESP instruction in imported dll's use that address and replace BBBB by that
+
+5: Create a shellcode payload and add NOP(\x90) at start of the shellcode
+
+6: Send it and check if it gives shell

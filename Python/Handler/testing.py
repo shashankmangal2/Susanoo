@@ -30,6 +30,7 @@ if __name__ == '__main__':
     print("\nprocess 3 is killed\n")
     time.sleep(5)
     print("killing all processes\n")
+    print(process_list[2].name)
     for i in range(len(process_list)):
         proc_name = process_list[i].name
         print(proc_name)

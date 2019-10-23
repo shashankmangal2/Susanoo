@@ -181,8 +181,6 @@ def createConnectionProcess(client,client_addr):
     process_list.append(new_process)
     new_process.start()
     print("\n[+] {}:{} connected as {}".format(client_addr[0],str(client_addr[1]),new_process.name))
-    new_process.join()
-    new_process.terminate()
     # Created new process for every connection that I get and save the process in process_list
 
 
@@ -203,8 +201,7 @@ def listener(lhost,lport,q):
 
     while(len(process_list)<100):
         (client,client_addr) = sock.accept()
-        create_process_thread = threading.Thread(target=createConnectionProcess,args=(client,client_addr))
-        create_process_thread.start()
+        createConnectionProcess(client,client_addr)
     
     sock.close()
 

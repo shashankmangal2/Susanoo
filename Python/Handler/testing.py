@@ -7,15 +7,23 @@ import time
 import logging
 import socket
 
-s = socket.socket()
-s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-s.bind(('',8080))
-s.listen(2)
-(client,client_addr) = s.accept()
-time.sleep(5000)
-data = client.recv(4096)
-print(data)
-client.close()
+# s = socket.socket()
+# s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+# s.bind(('',8080))
+# s.listen(2)
+# (client,client_addr) = s.accept()
+# time.sleep(5000)
+# data = client.recv(4096)
+# print(data)
+# client.close()
+
+hello = "hello world"
+
+def hellofunc():
+    global hello
+    print(hello)
+
+hellofunc()
 
 
 # def targetfunc(i):

@@ -10,6 +10,7 @@
 
 int connectSendData(char *ip,int port){
     HINTERNET hInternet = InternetOpenA("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.97 Safari/537.36",INTERNET_OPEN_TYPE_PRECONFIG,NULL,NULL,0);
+    // Sets User-Agent in request
 
     if(hInternet == NULL){
         printf("[DEBUG] Error while InternetOpen\n");
@@ -23,7 +24,9 @@ int connectSendData(char *ip,int port){
     }
 
     PCTSTR parAcceptTypes[] = {"text/*", NULL};
-    HINTERNET hRequest = HttpOpenRequestA(hConnect,"GET","index.html", NULL, NULL, parAcceptTypes, 0,0 );
+    // Sending a Get request for the index.html page 
+    HINTERNET hRequest = HttpOpenRequestA(hConnect,"GET","index.html", NULL, NULL, parAcceptTypes, INTERNET_FLAG_SECURE,0 );
+
     if(hRequest == NULL){
         printf("[DEBUG] Error while InternetOpenRequest\n");
         return 0;
@@ -37,19 +40,20 @@ int connectSendData(char *ip,int port){
 
     char buffer[1024];
     char RecvBuff[20000];
-    memset(buffer, 0, sizeof(buffer));
-    memset(RecvBuff, 0, sizeof(RecvBuff));
+    memset(buffer, 0, sizeof(buffer));      // Clearing Out the memory
+    memset(RecvBuff, 0, sizeof(RecvBuff));  // Clearing Out the memory
 
     BOOL bKeepReading = 1;
     DWORD dwBytesRead = -1;
     printf("[DEBUG] Reading is starting\n");
+    // Reading the buffer here  
     while(bKeepReading && dwBytesRead != 0){
         bKeepReading = InternetReadFile(hRequest, buffer, 1024, &dwBytesRead);
         StringCchCatA(RecvBuff, 20000, buffer);
         memset(buffer, 0, sizeof(buffer));
     }
     printf("[DEBUG] Reading Done\n");
-    printf("%s",RecvBuff);
+    printf("%s",RecvBuff);              // Printing buffer recieved
     return 0;
 
 }

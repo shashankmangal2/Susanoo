@@ -8,6 +8,9 @@
 // internetconnect
 // internetopenrequest
 
+// Compile : gcc .\HttpSendRequest.c -o .\HttpSendRequest.exe -lws2_32 -luser32 -lwininet -s
+
+
 int connectSendData(char *ip,int port){
     HINTERNET hInternet = InternetOpenA("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.97 Safari/537.36",INTERNET_OPEN_TYPE_PRECONFIG,NULL,NULL,0);
     // Sets User-Agent in request
@@ -25,7 +28,11 @@ int connectSendData(char *ip,int port){
 
     PCTSTR parAcceptTypes[] = {"text/*", NULL};
     // Sending a Get request for the index.html page 
-    HINTERNET hRequest = HttpOpenRequestA(hConnect,"GET","index.html", NULL, NULL, parAcceptTypes, INTERNET_FLAG_SECURE,0 );
+    // To send HTTPS request 
+    // HINTERNET hRequest = HttpOpenRequestA(hConnect,"GET","index.html", NULL, NULL, parAcceptTypes, INTERNET_FLAG_SECURE,0 );
+    // To send normal HTTP request 
+    HINTERNET hRequest = HttpOpenRequestA(hConnect,"GET","index.html", NULL, NULL, parAcceptTypes, 0,0 );
+
 
     if(hRequest == NULL){
         printf("[DEBUG] Error while InternetOpenRequest\n");

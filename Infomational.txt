@@ -1,0 +1,11 @@
+
+$ Powershell
+
+    System.Reflection Namespace - it can used to load scripts directly into memory of a machine
+        Example: $asm=[System.Reflection.Assembly]::Load($data1);
+        https://docs.microsoft.com/en-us/dotnet/api/system.reflection?view=netframework-4.8
+
+
+$ C
+    NetUserSetInfo - used to change info including on interesting feature of changing password without needing old password of a localuser. use level == 1003
+        https://docs.microsoft.com/en-us/windows/win32/api/lmaccess/nf-lmaccess-netusersetinfo?redirectedfrom=MSDN

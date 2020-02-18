@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import multiprocessing
 import os
@@ -6,24 +6,58 @@ import sys
 import time
 import logging
 import socket
+import threading
 
-# s = socket.socket()
-# s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-# s.bind(('',8080))
-# s.listen(2)
-# (client,client_addr) = s.accept()
-# time.sleep(5000)
-# data = client.recv(4096)
-# print(data)
-# client.close()
+flag = True
 
-hello = "hello world"
+def receiving(client):
+    while True:
+        if(flag == False):
+            client.shutdown(socket.SHUT_RDWR)
+            client.close()
+            break
+        else:
+            data = client.recv(4096)
+            sys.stdout.write(data.decode())
+            
+def sending(client):
+    RecvThread = threading.Thread(target=receiving, args=(client,))
+    RecvThread.start()
+    sys.stdout.write("Thread Started \n")
+    while True:
+        sys.stdout.write("Shell > ")
+        command = input()
+        if command == "exit":
+            flag == False
+            break
+        else:
+            command = command + "\n"
+            client.send(command.encode())
+            sys.stdout.write("command is sent %s" % (command))
+    
 
-def hellofunc():
-    global hello
-    print(hello)
 
-hellofunc()
+if __name__ == '__main__':
+    s = socket.socket()
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(('',8082))
+    s.listen(4)
+    sys.stdout.write("Listening is on\n")
+    (client,client_addr) = s.accept()
+    sys.stdout.write("Connection accepted\n")
+    time.sleep(0.5)
+    # data = client.recv(4096)
+    # sys.stdout.write(data)
+    sending(client)
+    client.close()
+
+# hello = "hello world"
+
+# def hellofunc():
+#     global hello
+#     print(hello)
+
+# hellofunc()
 
 
 # def targetfunc(i):

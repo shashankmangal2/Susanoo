@@ -118,7 +118,7 @@ def switch(process_name):
 def handlerExecuter(cmd):
 
     try:
-        if(cmd[:4]=='kill'):    # kill specified connection
+        if(cmd[:5]=='kill '):    # kill specified connection
             proc_name = cmd[5:]
             flag = 0
             for i in range(len(process_list)):
@@ -135,8 +135,8 @@ def handlerExecuter(cmd):
                 print("[-] Process not found\n")
         elif(cmd[:7]=="killall"):   # kill all conntections
             flag = 0
-            for i in range(len(process_list)):
-                flag = 1
+            for i in range(len(process_list)-1,-1,-1):
+                print(i)
                 proc_name = process_list[i].name
                 process_list[i].terminate()
                 del process_list[i]
@@ -144,6 +144,7 @@ def handlerExecuter(cmd):
                 del host_list[i]
                 del port_list[i]
                 print("[+] Process " + proc_name + " is terminated\n")
+                flag = 1
             if(flag == 0):
                 print("[-] Process not found\n")
         elif(cmd[:4] == "list"):    # list all the connected hosts

@@ -277,7 +277,7 @@ def master(host, port):
         for i in slaves.keys():
             slave = slaves[i]
             if slave.hostname == slave_addr[0]:
-                repeat = True
+                repeat = Truef
                 break
         if repeat:
             Log.warning("Detect the same host connection, reseting...")

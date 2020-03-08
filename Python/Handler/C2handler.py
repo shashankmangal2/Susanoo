@@ -135,7 +135,7 @@ def handlerExecuter(cmd):
                 print("[-] Process not found\n")
         elif(cmd[:7]=="killall"):   # kill all conntections
             flag = 0
-            for i in range(len(process_list)-1,-1,-1):
+            for i in range(len(process_list)-1,-1,-1):  
                 print(i)
                 proc_name = process_list[i].name
                 process_list[i].terminate()

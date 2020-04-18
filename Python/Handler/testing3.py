@@ -25,7 +25,7 @@ master = {}
 #     Write code to get data from client result and store it in a queue for later examination 
 #     Usage of UP and DOWN arrow keys to switch between history
 #     Find a way to use dictonaries rather than queues
-
+#     Add Gitter to this
 
 '''************************UPDATE THIS*****************************
 1: Write showResults function and sort out addToQueue Threading
@@ -179,8 +179,6 @@ def switch(process_name):
     except Exception as ex:
             sys.stdout.write("\n[-] Unable to Switch Process. Reason: {}\n".format(ex))
 
-
-
 def handlerExecuter(cmd):
 
     try:
@@ -312,22 +310,9 @@ def listener(lhost,lport):
             if EXIT_FLAG:
                 break
             (client,client_addr) = sock.accept()
-            hash = nodeHash(client_addr[0],client_addr[1])
-            for i in slaves.keys():         # checking if connection already exists for this client
-                slave = slaves[i]
-                if slave.node_hash == hash:
-                    repeat = True
-                    break
-            if repeat:                      # kill connection if same connection is already up
-                sys.stdout.write("\n[-] Same Connection Detected")
-                client.shutdown(socket.SHUT_RDWR)
-                client.close()
-            else:
-                slave = Slave(client,connection_count)
-                slaves[connection_count] = slave
-                connection_count = connection_count + 1
-                # Created new object in class slave and stored in dictonary slaves for every connection
-
+            slave_thread = threading.Thread(target=checkCookie,args=(client,))  # Creating a seperate thread to handle every connection.
+            slave_thread.start()
+            
         sock.shutdown(socket.SHUT_RDWR)
         sock.close()
     except Exception as ex:

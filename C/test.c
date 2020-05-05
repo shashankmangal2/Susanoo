@@ -2,6 +2,8 @@
 
 #include "Crypto.h"
 
+// Compile using gcc test.c -o test.exe -s
+
 int main(){
     // unsigned char data[] = "1234567890123456";
     unsigned char data[] = {0x00,0x11,0x22,0x33,

